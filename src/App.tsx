@@ -22,8 +22,19 @@ import "@ionic/react/css/text-transformation.css";
 import "@ionic/react/css/flex-utils.css";
 import "@ionic/react/css/display.css";
 
+import firebase from "firebase/app";
+import "firebase/firestore";
+
 /* Theme variables */
 import "./theme/variables.css";
+
+import { firebaseConfig } from "./env";
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+export const DB = firebase.firestore();
+export const donorDB = DB.collection("donors");
 
 const App: React.FC = () => (
   <IonApp>

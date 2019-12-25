@@ -13,19 +13,60 @@ import {
 } from "@ionic/react";
 import React, { useState, PropsWithChildren } from "react";
 
+import { donorDB } from "./../../App";
+
 const DonorForm: React.FC<PropsWithChildren<any>> = ({ onSaveDonor }) => {
   const [showAlert, setShowAlert] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [showError2, setShowError2] = useState(false);
   const [data, setData] = useState({});
 
-  const saveForm = () => {
-    console.log(data);
-    //  validate required fields
-    setShowAlert(true);
+  let firebaseErrorMsg = "";
+
+  const requiredFields = ["name", "blood-group", "contact-number"];
+
+  const addDonor = async (data: any) => {
+    try {
+      const docName = data.name
+        .toLowerCase()
+        .split(" ")
+        .join("-");
+
+      const doc = donorDB.doc(docName);
+      await doc.set({
+        ...data,
+        createdOn: new Date().getTime()
+      });
+
+      return true;
+    } catch (e) {
+      return e;
+    }
+  };
+
+  const saveForm = async () => {
+    const fields: any = requiredFields.filter(i => !(data as any)[i]);
+
+    if (fields.length > 0) {
+      return setShowError(true);
+    }
+
+    const result = await addDonor(data);
+
+    if (result === true) {
+      setData({});
+      return setShowAlert(true);
+    }
+
+    firebaseErrorMsg = result.message;
+    return setShowError2(true);
   };
 
   const handleSuccessOkay = () => {
     return onSaveDonor();
   };
+
+  const handleErrorOkay = () => {};
 
   const handleChange = (target: any) => {
     (data as any)[target.name] = target.value;
@@ -36,10 +77,18 @@ const DonorForm: React.FC<PropsWithChildren<any>> = ({ onSaveDonor }) => {
     return data.hasOwnProperty(target) ? (data as any)[target] : "";
   };
 
+  const requiredFieldsErrorMsg =
+    requiredFields
+      .map(i => {
+        return i.replace("-", " ");
+      })
+      .map(i => i.substr(0, 1).toUpperCase() + i.substr(1))
+      .join(", ") + " are required fields!";
+
   return (
     <React.Fragment>
       <IonItem>
-        <IonLabel position="floating">Name</IonLabel>
+        <IonLabel position="floating">Name (*)</IonLabel>
         <IonInput
           name="name"
           value={getData("name")}
@@ -48,7 +97,7 @@ const DonorForm: React.FC<PropsWithChildren<any>> = ({ onSaveDonor }) => {
       </IonItem>
 
       <IonItem>
-        <IonLabel position="floating">Blood Group</IonLabel>
+        <IonLabel position="floating">Blood Group (*)</IonLabel>
         <IonSelect
           okText="Okay"
           cancelText="Dismiss"
@@ -92,7 +141,7 @@ const DonorForm: React.FC<PropsWithChildren<any>> = ({ onSaveDonor }) => {
       </IonItem>
 
       <IonItem>
-        <IonLabel position="floating">Contact Number</IonLabel>
+        <IonLabel position="floating">Contact Number (*)</IonLabel>
         <IonInput
           name="contact-number"
           value={getData("contact-number")}
@@ -182,6 +231,34 @@ const DonorForm: React.FC<PropsWithChildren<any>> = ({ onSaveDonor }) => {
             text: "Okay",
             handler: () => {
               handleSuccessOkay();
+            }
+          }
+        ]}
+      />
+      <IonAlert
+        isOpen={showError}
+        onDidDismiss={() => setShowError(false)}
+        header={"Error"}
+        message={requiredFieldsErrorMsg}
+        buttons={[
+          {
+            text: "Okay",
+            handler: () => {
+              handleErrorOkay();
+            }
+          }
+        ]}
+      />
+      <IonAlert
+        isOpen={showError2}
+        onDidDismiss={() => setShowError2(false)}
+        header={"Error"}
+        message={firebaseErrorMsg}
+        buttons={[
+          {
+            text: "Okay",
+            handler: () => {
+              handleErrorOkay();
             }
           }
         ]}
